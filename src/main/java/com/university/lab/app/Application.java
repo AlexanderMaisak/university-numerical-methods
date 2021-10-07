@@ -1,16 +1,12 @@
 package com.university.lab.app;
 
-import java.sql.SQLOutput;
-import java.util.Arrays;
-import java.util.Scanner;
-
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
 
 public class Application {
 
-    public static final int COLS_AND_ROWS_VALUE = 3;
-    private static final String RELATIVE_FAULT_MSG = "\nRelative fault: %s";
+    public static final int APPROXIMATING_POLYNOMIAL_DEGREE = 9;
+    public static final int NUMBER_OF_MEASUREMENTS = 4;
 
     public static void main(String[] args) {
 
@@ -27,198 +23,157 @@ public class Application {
 //        in.close();
 
         //todo: all methods are written for a static arrays with COLS_AND_ROWS_VALUE
-        double[][] arrayA = new double[COLS_AND_ROWS_VALUE][COLS_AND_ROWS_VALUE];
-        double[] vectorB = new double[COLS_AND_ROWS_VALUE];
+        double[] x = new double[APPROXIMATING_POLYNOMIAL_DEGREE];
+        double[] y = new double[APPROXIMATING_POLYNOMIAL_DEGREE];
 
-        testFillingArrayAndVectorForTask(arrayA, vectorB);
+        fillingMatrix_X(x);
+        fillingMatrix_Y(x, y);
 
-        double[] X = gaussMethod(arrayA, vectorB);
-
-        System.out.println("Solution of a system of linear algebraic equations (SLAE): ");
-        for (int i = 0; i < COLS_AND_ROWS_VALUE; i++) {
-            System.out.printf("x%s=%s\t\t", i + 1, X[i]);
+        for (int i = 0; i < APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
+            System.out.println("x[" + (i + 1) + "] = " + x[i] + "\t" + "y[" + (i + 1) + "] = " + y[i]);
         }
         System.out.println();
 
-        double[][] copyOfA;
-        copyOfA = Arrays.copyOf(arrayA, COLS_AND_ROWS_VALUE * COLS_AND_ROWS_VALUE);
-        double[] copyOfB;
-        copyOfB = Arrays.copyOf(vectorB, vectorB.length);
+        double[] PowerX = new double[2 * NUMBER_OF_MEASUREMENTS];
+        for (int i = 0; i < 2 * NUMBER_OF_MEASUREMENTS; ++i) {
+            PowerX[i] = 0;
+        }
 
-        double[] vectorF = findResidualVector(copyOfA, copyOfB, X);
+        for (int i = 1; i <= 2 * NUMBER_OF_MEASUREMENTS; ++i) {
+            for (int j = 0; j < APPROXIMATING_POLYNOMIAL_DEGREE; ++j) {
+                PowerX[i - 1] += Math.pow(x[j], i);
+            }
+        }
 
-        System.out.println("\nResidual vector F: ");
-        for (int i = 0; i < COLS_AND_ROWS_VALUE; i++) {
-            System.out.printf("%s\t\t", vectorF[i]);
+        for (int i = 0; i < 2 * NUMBER_OF_MEASUREMENTS; ++i) {
+            System.out.println("PowerX[" + (i + 1) + "] = " + PowerX[i]);
         }
         System.out.println();
 
-        System.out.println("\nResidual vector norm: ");
-        double norma = findResidualVectorNorm(vectorF);
-        System.out.println(norma);
+        double[][] sumX = new double[NUMBER_OF_MEASUREMENTS + 1][NUMBER_OF_MEASUREMENTS + 2];
 
-        double[] vectorB2 = fillSecondVectorB(copyOfA, X);
-        double[] X2 = gaussMethod(copyOfA, vectorB2);
-
-        System.out.println("\nAssistant system solution: ");
-        for (int i = 0; i < COLS_AND_ROWS_VALUE; i++) {
-            System.out.printf("%s\t\t", X[i]);
-        }
-        System.out.println();
-
-        System.out.println(String.format(RELATIVE_FAULT_MSG,
-                findResidualVectorNorm(difference(X, X2)) / findResidualVectorNorm(X)));
-        System.out.println();
-    }
-
-    private static double[] gaussMethod(double[][] A, double[] b) {
-        double[] X = new double[COLS_AND_ROWS_VALUE];
-
-        for (int k = 0; k < COLS_AND_ROWS_VALUE; k++) {
-            for (int i = k + 1; i < COLS_AND_ROWS_VALUE; i++) {
-                if (abs(A[i][k]) > abs(A[k][k])) {
-                    swapReference(A, k, i);
-                    swapValues(b, k, i);
+        for (int i = 1; i <= NUMBER_OF_MEASUREMENTS + 1; ++i) {
+            for (int j = 1; j <= NUMBER_OF_MEASUREMENTS + 1; ++j) {
+                if ((i + j) >= 3) {
+                    sumX[i - 1][j - 1] = PowerX[i + j - 3];
                 }
             }
+        }
+        sumX[0][0] = APPROXIMATING_POLYNOMIAL_DEGREE;
 
-            double mainA = A[k][k];
-            if (mainA == 0) {
-                throw new IllegalArgumentException("invalid value");
+        outputMatrix(sumX, NUMBER_OF_MEASUREMENTS + 1);
+        for (int i = 0; i <= NUMBER_OF_MEASUREMENTS; ++i) {
+            for (int j = 0; j < APPROXIMATING_POLYNOMIAL_DEGREE; ++j) {
+                sumX[i][NUMBER_OF_MEASUREMENTS + 1] += (y[j] * Math.pow(x[j], i));
             }
+        }
+        outputMatrix(sumX, NUMBER_OF_MEASUREMENTS + 1);
 
-            for (int i = k; i < COLS_AND_ROWS_VALUE; i++) {
-                A[k][i] /= mainA;
-            }
+        double[][] copyA = new double[NUMBER_OF_MEASUREMENTS + 1][NUMBER_OF_MEASUREMENTS + 2];
+        copyMatrix(sumX, copyA, NUMBER_OF_MEASUREMENTS + 1);
 
-            b[k] /= mainA;
+        double[] An;
+        An = gauss(copyA, NUMBER_OF_MEASUREMENTS + 1, NUMBER_OF_MEASUREMENTS + 2);
 
-            for (int i = k + 1; i < COLS_AND_ROWS_VALUE; i++) {
-                double val = A[i][k];
-                for (int j = k; j < COLS_AND_ROWS_VALUE; j++) {
-                    A[i][j] -= val * A[k][j];
+        for (int i = 0; i < NUMBER_OF_MEASUREMENTS + 1; ++i) {
+            System.out.println("a[" + (i + 1) + "] = " + An[i]);
+        }
+
+        System.out.println();
+        System.out.println("Sigma = " + Math.sqrt(standardDeviation(x, y, An, NUMBER_OF_MEASUREMENTS + 1)));
+
+        System.out.print("y(x) = ");
+        for (int i = NUMBER_OF_MEASUREMENTS; i > 0; --i) {
+            System.out.print(An[i] + "x^" + i + " + ");
+        }
+        System.out.println(An[0]);
+    }
+
+    private static double[] gauss(double[][] matrix, int n, int m) {
+        double elem = 0;
+        for (int j = 0; j < n; j++) {
+            double max = 0;
+            int coord_str = 0;
+            for (int t = j; t < n; t++) {
+                if (Math.abs(matrix[t][j]) > max) {
+                    max = Math.abs(matrix[t][j]); coord_str = t;
                 }
-                b[i] -= val * b[k];
+            }
+            if (max > Math.abs(matrix[j][j])) {
+                double[] ptr = matrix[j];
+                matrix[j] = matrix[coord_str];
+                matrix[coord_str] = ptr;
+            }
+            elem = matrix[j][j];
+            for (int c = j; c < m; c++) {
+                matrix[j][c] /= elem;
+            }
+
+            for (int i2 = j + 1; i2 < n; i2++) {
+                elem = matrix[i2][j];
+                for (int k = j; k < m; k++)
+                    matrix[i2][k] -= elem * matrix[j][k];
             }
         }
 
-        for (int k = COLS_AND_ROWS_VALUE - 1; k >= 0; k--) {
-            X[k] = b[k];
-            for (int i = COLS_AND_ROWS_VALUE - 1; i > k; i--) {
-                X[k] -= A[k][i] * X[i];
-            }
+        double[] xx = new double[m];
+        xx[n - 1] = matrix[n - 1][n];
+        for (int i = n - 2; i >= 0; i--) {
+            xx[i] = matrix[i][n];
+            for (int j = i + 1; j < n; j++)
+                xx[i] -= matrix[i][j] * xx[j];
         }
-        return X;
+        System.out.println();
+
+        return xx;
     }
 
-    private static double findResidualVectorNorm(double[] vectorF) {
-        double norma = abs(vectorF[0]);
-        for (int i = 0; i < COLS_AND_ROWS_VALUE; i++) {
-            norma = max(vectorF[i], norma);
+    private static void fillingMatrix_X(double[] x) {
+        x[0] = 0;
+        x[1] = 1;
+        x[2] = 2;
+        x[3] = 3;
+        x[4] = 4;
+        x[5] = 5;
+        x[6] = 6;
+        x[7] = 7;
+        x[8] = 8;
+    }
+
+    private static void fillingMatrix_Y(double[] x, double[] y) {
+        for (int i = 0; i < NUMBER_OF_MEASUREMENTS; i++) {
+            y[i] = 1 / (1 + x[i]);
         }
-        return norma;
     }
 
-    private static double[] findResidualVector(double[][] A, double[] b, double[] X) {
-        double[] result = new double[COLS_AND_ROWS_VALUE];
-        for (int i = 0; i < COLS_AND_ROWS_VALUE; i++) {
-            result[i] = -b[i];
-            for (int j = 0; j < COLS_AND_ROWS_VALUE; j++) {
-                result[i] += A[i][j] * X[j];
-            }
-        }
-        return result;
-    }
-
-    private static void swapReference(double[][] A, int k, int i) {
-        double[] tmp = A[i];
-        A[i] = A[k];
-        A[k] = tmp;
-    }
-
-    private static void swapValues(double[] b, int k, int i) {
-        double tmp = b[i];
-        b[i] = b[k];
-        b[k] = tmp;
-    }
-
-    private static double[] fillSecondVectorB(double[][] copyOfA, double[] X) {
-        double[] b2 = new double[COLS_AND_ROWS_VALUE];
-        for (int i = 0; i < COLS_AND_ROWS_VALUE; i++) {
-            b2[i] = 0;
-            for (int j = 0; j < COLS_AND_ROWS_VALUE; j++) {
-                b2[i] += copyOfA[i][j] * X[j];
-            }
-        }
-        return b2;
-    }
-
-    private static double[] difference(double[] X1, double[] X2) {
-        double[] x = new double[COLS_AND_ROWS_VALUE];
-        for (int i = 0; i < COLS_AND_ROWS_VALUE; i++) {
-            x[i] = X2[i] - X1[i];
-        }
-        return x;
-    }
-
-    private static void defaultFillingArrayAndVector(double[] vectorB, Scanner in, int cols, int rows, double[][] arrA) {
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                arrA[i][j] = in.nextInt();
-            }
-        }
-        System.out.println("Matrix A:");
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                System.out.printf("%s\t", arrA[i][j]);
+    private static void outputMatrix(double[][] A, int n) {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < (n + 1); j++) {
+                System.out.printf("%s\t\t", A[i][j]);
             }
             System.out.println();
         }
         System.out.println();
-
-        for (int i = 0; i < rows; i++) {
-            vectorB[i] = in.nextInt();
-        }
-
-        System.out.println("vector b:");
-        for (int i = 0; i < rows; i++) {
-            System.out.printf("%s\t", vectorB[i]);
-        }
-        System.out.println();
     }
 
-    private static void testFillingArrayAndVectorForTask(double[][] arrayA, double[] vectorB) {
-        arrayA[0][0] = 2.30;
-        arrayA[0][1] = 5.70;
-        arrayA[0][2] = -0.80;
+    private static void copyMatrix(double[][] A, double[][] copyA, int n) {
+        for (int i = 0; i < n; i++) {
+            if (n + 1 >= 0) System.arraycopy(A[i], 0, copyA[i], 0, n + 1);
+        }
+    }
 
-        arrayA[1][0] = 3.50;
-        arrayA[1][1] = -2.70;
-        arrayA[1][2] = 5.30;
-
-        arrayA[2][0] = 1.70;
-        arrayA[2][1] = 2.30;
-        arrayA[2][2] = 3.58;
-
-        vectorB[0] = -6.49;
-        vectorB[1] = 19.20;
-        vectorB[2] = -5.09;
-
-        System.out.println("Matrix A:");
-        for (int i = 0; i < COLS_AND_ROWS_VALUE; i++) {
-            for (int j = 0; j < COLS_AND_ROWS_VALUE; j++) {
-                System.out.printf("%s\t\t", arrayA[i][j]);
+    private static double standardDeviation(double[] dataX, double[] dataY, double[] An, double n) {
+        double S = 0, temp;
+        for (int i = 0; i < APPROXIMATING_POLYNOMIAL_DEGREE; i++) {
+            temp = dataY[i];
+            for (int j = 0; j < n; j++) {
+                temp -= An[j] * Math.pow(dataX[i], j);
             }
-            System.out.println();
+            S += temp * temp;
         }
+        S /= (APPROXIMATING_POLYNOMIAL_DEGREE - NUMBER_OF_MEASUREMENTS - 1);
 
-        System.out.println();
-        System.out.println("vector b:");
-        for (int i = 0; i < COLS_AND_ROWS_VALUE; i++) {
-            System.out.printf("%s\t\t", vectorB[i]);
-        }
-        System.out.println();
-        System.out.println();
+        return S;
     }
 
 }
