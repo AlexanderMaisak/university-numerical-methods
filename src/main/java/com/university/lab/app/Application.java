@@ -2,67 +2,68 @@ package com.university.lab.app;
 
 public class Application {
 
-    public static final int APPROXIMATING_POLYNOMIAL_DEGREE = 7;
-    public static final int NUMBER_OF_MEASUREMENTS = 1;
+    public static final int NUMBER_OF_MEASUREMENTS = 7;
+    public static final int APPROXIMATING_POLYNOMIAL_DEGREE = 1;
+
 
     public static void main(String[] args) {
-        double[] x = new double[APPROXIMATING_POLYNOMIAL_DEGREE];
-        double[] y = new double[APPROXIMATING_POLYNOMIAL_DEGREE];
+        double[] x = new double[NUMBER_OF_MEASUREMENTS];
+        double[] y = new double[NUMBER_OF_MEASUREMENTS];
 
         fillingMatrix_X(x);
         fillingMatrix_Y(y);
 
-        for (int i = 0; i < APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
+        for (int i = 0; i < NUMBER_OF_MEASUREMENTS; ++i) {
             System.out.println("x[" + (i + 1) + "] = " + x[i] + "\t" + "y[" + (i + 1) + "] = " + y[i]);
         }
         System.out.println();
 
-        double[] PowerX = new double[2 * NUMBER_OF_MEASUREMENTS];
-        for (int i = 0; i < 2 * NUMBER_OF_MEASUREMENTS; ++i) {
+        double[] PowerX = new double[2 * APPROXIMATING_POLYNOMIAL_DEGREE];
+        for (int i = 0; i < 2 * APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
             PowerX[i] = 0;
         }
 
-        for (int i = 1; i <= 2 * NUMBER_OF_MEASUREMENTS; ++i) {
-            for (int j = 0; j < APPROXIMATING_POLYNOMIAL_DEGREE; ++j) {
+        for (int i = 1; i <= 2 * APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
+            for (int j = 0; j < NUMBER_OF_MEASUREMENTS; ++j) {
                 PowerX[i - 1] += Math.pow(x[j], i);
             }
         }
 
-        for (int i = 0; i < 2 * NUMBER_OF_MEASUREMENTS; ++i) {
+        for (int i = 0; i < 2 * APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
             System.out.println("PowerX[" + (i + 1) + "] = " + PowerX[i]);
         }
         System.out.println();
 
-        double[][] sumX = new double[NUMBER_OF_MEASUREMENTS + 1][NUMBER_OF_MEASUREMENTS + 2];
+        double[][] sumX = new double[APPROXIMATING_POLYNOMIAL_DEGREE + 1][APPROXIMATING_POLYNOMIAL_DEGREE + 2];
 
-        for (int i = 1; i <= NUMBER_OF_MEASUREMENTS + 1; ++i) {
-            for (int j = 1; j <= NUMBER_OF_MEASUREMENTS + 1; ++j) {
+        for (int i = 1; i <= APPROXIMATING_POLYNOMIAL_DEGREE + 1; ++i) {
+            for (int j = 1; j <= APPROXIMATING_POLYNOMIAL_DEGREE + 1; ++j) {
                 if ((i + j) >= 3) {
                     sumX[i - 1][j - 1] = PowerX[i + j - 3];
                 }
             }
         }
-        sumX[0][0] = APPROXIMATING_POLYNOMIAL_DEGREE;
+        sumX[0][0] = NUMBER_OF_MEASUREMENTS;
 
-        for (int i = 0; i <= NUMBER_OF_MEASUREMENTS; ++i) {
-            for (int j = 0; j < APPROXIMATING_POLYNOMIAL_DEGREE; ++j) {
-                sumX[i][NUMBER_OF_MEASUREMENTS + 1] += (y[j] * Math.pow(x[j], i));
+        for (int i = 0; i <= APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
+            for (int j = 0; j < NUMBER_OF_MEASUREMENTS; ++j) {
+                sumX[i][APPROXIMATING_POLYNOMIAL_DEGREE + 1] += (y[j] * Math.pow(x[j], i));
             }
         }
-        outputMatrix(sumX, NUMBER_OF_MEASUREMENTS + 1);
+        outputMatrix(sumX, APPROXIMATING_POLYNOMIAL_DEGREE + 1);
 
-        double[][] copyA = new double[NUMBER_OF_MEASUREMENTS + 1][NUMBER_OF_MEASUREMENTS + 2];
-        copyMatrix(sumX, copyA, NUMBER_OF_MEASUREMENTS + 1);
+        double[][] copyA = new double[APPROXIMATING_POLYNOMIAL_DEGREE + 1][APPROXIMATING_POLYNOMIAL_DEGREE + 2];
+        copyMatrix(sumX, copyA, APPROXIMATING_POLYNOMIAL_DEGREE + 1);
 
         double[] An;
-        An = gauss(copyA, NUMBER_OF_MEASUREMENTS + 1, NUMBER_OF_MEASUREMENTS + 2);
+        An = gauss(copyA, APPROXIMATING_POLYNOMIAL_DEGREE + 1, APPROXIMATING_POLYNOMIAL_DEGREE + 2);
 
-        for (int i = 0; i < NUMBER_OF_MEASUREMENTS + 1; i++) {
+        for (int i = 0; i < APPROXIMATING_POLYNOMIAL_DEGREE + 1; i++) {
             System.out.println("a[" + (i + 1) + "] = " + An[i]);
         }
 
         System.out.println();
-        System.out.println("Sigma = " + Math.sqrt(standardDeviation(x, y, An, NUMBER_OF_MEASUREMENTS + 1)));
+        System.out.println("Sigma = " + Math.sqrt(standardDeviation(x, y, An, APPROXIMATING_POLYNOMIAL_DEGREE + 1)));
         System.out.println();
         System.out.print("y(x) = ");
         System.out.print(An[1] + " * x + " + An[0]);
@@ -147,14 +148,14 @@ public class Application {
 
     private static double standardDeviation(double[] dataX, double[] dataY, double[] An, double n) {
         double S = 0, temp;
-        for (int i = 0; i < APPROXIMATING_POLYNOMIAL_DEGREE; i++) {
+        for (int i = 0; i < NUMBER_OF_MEASUREMENTS; i++) {
             temp = dataY[i];
             for (int j = 0; j < n; j++) {
                 temp -= An[j] * Math.pow(dataX[i], j);
             }
             S += temp * temp;
         }
-        S /= (APPROXIMATING_POLYNOMIAL_DEGREE - NUMBER_OF_MEASUREMENTS - 1);
+        S /= (NUMBER_OF_MEASUREMENTS - APPROXIMATING_POLYNOMIAL_DEGREE - 1);
 
         return S;
     }
