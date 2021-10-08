@@ -1,33 +1,16 @@
 package com.university.lab.app;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.max;
-
 public class Application {
 
-    public static final int APPROXIMATING_POLYNOMIAL_DEGREE = 9;
-    public static final int NUMBER_OF_MEASUREMENTS = 4;
+    public static final int APPROXIMATING_POLYNOMIAL_DEGREE = 7;
+    public static final int NUMBER_OF_MEASUREMENTS = 1;
 
     public static void main(String[] args) {
-
-//        Scanner in = new Scanner(System.in);
-//        System.out.println("Enter the number of cols");
-//        int cols = in.nextInt();
-//        System.out.println("Enter the number of rows");
-//        int rows = in.nextInt();
-//
-//        int[][] arrA = new int[rows][cols];
-//        int[] vecB = new int[rows];
-//        defaultFillingArrayAndVector(vectorB, in, cols, rows, arrA);
-//
-//        in.close();
-
-        //todo: all methods are written for a static arrays with COLS_AND_ROWS_VALUE
         double[] x = new double[APPROXIMATING_POLYNOMIAL_DEGREE];
         double[] y = new double[APPROXIMATING_POLYNOMIAL_DEGREE];
 
         fillingMatrix_X(x);
-        fillingMatrix_Y(x, y);
+        fillingMatrix_Y(y);
 
         for (int i = 0; i < APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
             System.out.println("x[" + (i + 1) + "] = " + x[i] + "\t" + "y[" + (i + 1) + "] = " + y[i]);
@@ -61,7 +44,6 @@ public class Application {
         }
         sumX[0][0] = APPROXIMATING_POLYNOMIAL_DEGREE;
 
-        outputMatrix(sumX, NUMBER_OF_MEASUREMENTS + 1);
         for (int i = 0; i <= NUMBER_OF_MEASUREMENTS; ++i) {
             for (int j = 0; j < APPROXIMATING_POLYNOMIAL_DEGREE; ++j) {
                 sumX[i][NUMBER_OF_MEASUREMENTS + 1] += (y[j] * Math.pow(x[j], i));
@@ -75,34 +57,32 @@ public class Application {
         double[] An;
         An = gauss(copyA, NUMBER_OF_MEASUREMENTS + 1, NUMBER_OF_MEASUREMENTS + 2);
 
-        for (int i = 0; i < NUMBER_OF_MEASUREMENTS + 1; ++i) {
+        for (int i = 0; i < NUMBER_OF_MEASUREMENTS + 1; i++) {
             System.out.println("a[" + (i + 1) + "] = " + An[i]);
         }
 
         System.out.println();
         System.out.println("Sigma = " + Math.sqrt(standardDeviation(x, y, An, NUMBER_OF_MEASUREMENTS + 1)));
-
+        System.out.println();
         System.out.print("y(x) = ");
-        for (int i = NUMBER_OF_MEASUREMENTS; i > 0; --i) {
-            System.out.print(An[i] + "x^" + i + " + ");
-        }
-        System.out.println(An[0]);
+        System.out.print(An[1] + " * x + " + An[0]);
     }
 
     private static double[] gauss(double[][] matrix, int n, int m) {
         double elem = 0;
         for (int j = 0; j < n; j++) {
             double max = 0;
-            int coord_str = 0;
+            int rowCoord = 0;
             for (int t = j; t < n; t++) {
                 if (Math.abs(matrix[t][j]) > max) {
-                    max = Math.abs(matrix[t][j]); coord_str = t;
+                    max = Math.abs(matrix[t][j]);
+                    rowCoord = t;
                 }
             }
             if (max > Math.abs(matrix[j][j])) {
                 double[] ptr = matrix[j];
-                matrix[j] = matrix[coord_str];
-                matrix[coord_str] = ptr;
+                matrix[j] = matrix[rowCoord];
+                matrix[rowCoord] = ptr;
             }
             elem = matrix[j][j];
             for (int c = j; c < m; c++) {
@@ -116,34 +96,37 @@ public class Application {
             }
         }
 
-        double[] xx = new double[m];
-        xx[n - 1] = matrix[n - 1][n];
+        double[] X = new double[m];
+        X[n - 1] = matrix[n - 1][n];
         for (int i = n - 2; i >= 0; i--) {
-            xx[i] = matrix[i][n];
+            X[i] = matrix[i][n];
             for (int j = i + 1; j < n; j++)
-                xx[i] -= matrix[i][j] * xx[j];
+                X[i] -= matrix[i][j] * X[j];
         }
         System.out.println();
 
-        return xx;
+        return X;
     }
 
     private static void fillingMatrix_X(double[] x) {
-        x[0] = 0;
-        x[1] = 1;
-        x[2] = 2;
-        x[3] = 3;
-        x[4] = 4;
-        x[5] = 5;
-        x[6] = 6;
-        x[7] = 7;
-        x[8] = 8;
+        x[0] = 19.1;
+        x[1] = 25.0;
+        x[2] = 30.1;
+        x[3] = 36.0;
+        x[4] = 40.0;
+        x[5] = 45.1;
+        x[6] = 50.0;
     }
 
-    private static void fillingMatrix_Y(double[] x, double[] y) {
-        for (int i = 0; i < NUMBER_OF_MEASUREMENTS; i++) {
-            y[i] = 1 / (1 + x[i]);
-        }
+    private static void fillingMatrix_Y(double[] y) {
+        y[0] = 76.30;
+        y[1] = 77.80;
+        y[2] = 79.75;
+        y[3] = 80.80;
+        y[4] = 82.35;
+        y[5] = 83.90;
+        y[6] = 85.0;
+
     }
 
     private static void outputMatrix(double[][] A, int n) {
