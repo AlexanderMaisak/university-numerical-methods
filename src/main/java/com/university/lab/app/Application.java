@@ -1,160 +1,127 @@
 package com.university.lab.app;
 
-import java.util.Scanner;
-
 import static java.lang.Math.*;
 
 public class Application {
 
-    private static final int N = 2;
-    private static final double EPS1 = 1e-7;
-    private static final double EPS2 = 1e-9;
+    private static final double EPS1 = 1e-4;
+    private static final double EPS2 = 1e-5;
+    private static final double a = 1;
+    private static final double b = 1;
 
     public static void main(String[] args) {
-        Scanner in = new Scanner(System.in);
 
-        double[] F = new double[N];
-        double[] x = new double[N];
-        double[][] Jac = new double[N][N + 1];
-        double[] dx = new double[N];
+        double trapezoid;
+        double simpson;
+        double cubeSimpson;
 
-        System.out.println("Newton's Method");
+        final double a = 0.0;
+        final double b = 1.047;
 
-        System.out.println();
-        System.out.println("2x1^3 - x2^2 - 1 = 0;");
-        System.out.println("x1x2^3 - x2 - 4 = 0;");
-        System.out.println();
+        trapezoid = trapezoidMethod(a, b);
+        System.out.println("Trapezoid method:\n" + trapezoid + '\n');
+        simpson = simpsonMethod(a, b);
+        System.out.println("Simpson's method:\n" + simpson + '\n');
 
-        System.out.print("Enter the number of iterations: ");
-        int iter = in.nextInt();
-        System.out.println();
+        final double a1 = 0.0;
+        final double b1 = 1.0;
+        final double c1 = 1.0;
+        final double d1 = 2.0;
 
-        System.out.println("Enter the initial approximation:");
-        for (int i = 0; i < N; ++i) {
-            System.out.print("Enter value " + (i + 1) + ": ");
-            x[i] = in.nextDouble();
-        }
-
-        newtonMethod(Jac, F, x, dx, iter);
+        cubeSimpson = simpsonCubeMethod(a1, b1, c1, d1);
+        System.out.println("Simpson's cubature method:\n" + cubeSimpson + '\n');
     }
 
-    public static void equations(double[] F, double[] x) {
-        F[0] = 2 * x[0] * x[0] * x[0] - x[1] * x[1] - 1;
-        F[1] = x[0] * x[1] * x[1] * x[1] - x[1] - 4;
+    public static double function(double x) {
+        return exp(x / 2) / pow((x + 1), 0.5);
     }
 
-    public static void newtonMethod(double[][] Jac, double[] F, double[] x, double[] dx, int iter) {
-        System.out.println("IterNumber" + "\t\t\t" + "del1" + "\t\t\t\t\t" + "del2");
-        System.out.println("=============================================================");
+    public static double function(double x, double y) {
 
-        boolean IER = false;
-
-        int k = 0;
-        while (true) {
-            equations(F, x);
-            jacobi(Jac, F, x);
-            for (int i = 0; i < N; ++i) {
-                F[i] *= -1;
-            }
-            gaussMethod(Jac, F, dx, x);
-            double max = 0;
-            equations(F, x);
-            for (int i = 0; i < N; ++i) {
-                if (abs(F[i]) > max) {
-                    max = abs(F[i]);
-                }
-            }
-            double del1 = max;
-            max = 0;
-            for (int i = 0; i < N; ++i) {
-                if (abs(x[i]) < 1 && abs(dx[i]) > max) {
-                    max = abs(dx[i]);
-                }
-                if (abs(x[i]) >= 1 && abs(dx[i] / x[i]) > max) {
-                    max = abs(dx[i] / x[i]);
-                }
-            }
-            double del2 = max;
-            System.out.println("\t" + (k + 1) + "\t\t" + del1 + "\t\t" + del2);
-            k++;
-            if (del1 <= EPS2 && del2 <= EPS2 || k >= iter) {
-                if (k >= iter) {
-                    IER = true;
-                }
-                break;
-            }
-        }
-
-        System.out.println("=============================================================");
-        System.out.println("X1 = " + x[0]);
-        System.out.println("X2 = " + x[1]);
-
-        if (IER) {
-//            System.out.println("IER = 2");
-        }
+        return sin(x * x + y * y) / (1 + a * x + b * y);
     }
 
-    public static void jacobi(double[][] Jac, double[] F, double[] x) {
-        double f1 = 0;
-        double f2 = 0;
+    public static double trapezoidMethod(double a, double b) {
+        double sum = 0;
+        double previousSum = 0;
+        double h = (b - a);
+        int amount = 0;
 
-        for (int i = 0; i < N; ++i) {
-            for (int j = 0; j < N; ++j) {
-                x[j] += EPS1;
-                equations(F, x);
-                f1 = F[i];
-                x[j] -= EPS1;
-                equations(F, x);
-                f2 = F[i];
-                Jac[i][j] = (f1 - f2) / EPS1;
-                Jac[i][N] = -F[i];
+        do {
+            previousSum = sum;
+            sum = 0;
+            for (int i = 1; i <= ((b - a) / h) - 1; i++) {
+                sum += 2 * function(a + h * i);
             }
-        }
+            sum = (function(a) + sum + function(b)) * h / 2;
+            h /= 2;
+            amount++;
+        } while (abs(sum - previousSum) > 3 * EPS1);
+
+        System.out.println("Trapezoid: " + amount + " iter");
+
+        return sum;
     }
 
-    public static void gaussMethod(double[][] Jac, double[] F, double[] dx, double[] x) {
-        for (int i = 0; i < N; i++) {
-            double max = abs(Jac[i][i]);
-            int my = i;
+    public static double simpsonMethod(double a, double b) {
+        double sum = 0;
+        double previousSum = 0;
+        double h = (b - a) / 2;
+        int amount = 0;
 
-            for (int t = i; t < N; ++t) {
-                if (abs(Jac[t][i]) > max) {
-                    max = abs(Jac[t][i]);
-                    my = t;
-                }
+        do {
+            previousSum = sum;
+            sum = 0;
+            for (int i = 1; i <= ((b - a) / h); i += 2) {
+                sum += 4 * function(a + h * i);
             }
-
-            if (my != i) {
-                double[] per = Jac[i];
-                Jac[i] = Jac[my];
-                Jac[my] = per;
+            for (int i = 2; i <= ((b - a) / h) - 1; i += 2) {
+                sum += 2 * function(a + h * i);
             }
+            sum = (function(a) + sum + function(b)) * h / 3;
+            h /= 2;
+            amount++;
+        } while (abs(sum - previousSum) > 15 * EPS2);
 
-            double amain = Jac[i][i];
-            for (int z = 0; z < N + 1; ++z) {
-                Jac[i][z] = Jac[i][z] / amain;
-            }
+        System.out.println("Simpson's: " + amount + " iter");
 
-            for (int j = i + 1; j < N; ++j) {
-                double b = Jac[j][i];
-                for (int z = i; z < N + 1; ++z) {
-                    Jac[j][z] = Jac[j][z] - Jac[i][z] * b;
-                }
+        return sum;
+    }
+
+    public static double simpsonCubeMethod(double a, double b, double c, double d) {
+        int m = 10;
+        int n = 2 * m;
+        double hx = (b - a) / (2 * n);
+        double hy = (d - c) / (2 * m);
+        double sum = 0;
+
+        double[] Xi = new double[2 * n + 1];
+        Xi[0] = a;
+
+        for (int i = 1; i <= 2 * n; i++)
+            Xi[i] = Xi[i - 1] + hx;
+        ;
+
+        double[] Yi = new double[2 * m + 1];
+        Yi[0] = c;
+
+        for (int j = 1; j <= 2 * m; j++)
+            Yi[j] = Yi[j - 1] + hy;
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                sum += function(Xi[2 * i], Yi[2 * j]);
+                sum += 4 * function(Xi[2 * i + 1], Yi[2 * j]);
+                sum += function(Xi[2 * i + 2], Yi[2 * j]);
+                sum += 4 * function(Xi[2 * i], Yi[2 * j + 1]);
+                sum += 16 * function(Xi[2 * i + 1], Yi[2 * j + 1]);
+                sum += 4 * function(Xi[2 * i + 2], Yi[2 * j + 1]);
+                sum += function(Xi[2 * i], Yi[2 * j + 2]);
+                sum += 4 * function(Xi[2 * i + 1], Yi[2 * j + 2]);
+                sum += function(Xi[2 * i + 2], Yi[2 * j + 2]);
             }
         }
-
-        for (int i = N - 1; i > 0; --i) {
-            for (int j = i - 1; j >= 0; --j) {
-                Jac[j][N] = Jac[j][N] - Jac[j][i] * Jac[i][N];
-            }
-        }
-
-        for (int i = 0; i < N; ++i) {
-            dx[i] = Jac[i][N];
-        }
-
-        for (int i = 0; i < N; i++) {
-            x[i] += Jac[i][N];
-        }
+        sum *= (hx * hy / 9);
+        return sum;
     }
 }
