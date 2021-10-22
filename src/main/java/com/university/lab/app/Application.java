@@ -1,163 +1,160 @@
 package com.university.lab.app;
 
+import java.util.Scanner;
+
+import static java.lang.Math.*;
+
 public class Application {
 
-    public static final int NUMBER_OF_MEASUREMENTS = 7;
-    public static final int APPROXIMATING_POLYNOMIAL_DEGREE = 1;
-
+    private static final int N = 2;
+    private static final double EPS1 = 1e-7;
+    private static final double EPS2 = 1e-9;
 
     public static void main(String[] args) {
-        double[] x = new double[NUMBER_OF_MEASUREMENTS];
-        double[] y = new double[NUMBER_OF_MEASUREMENTS];
+        Scanner in = new Scanner(System.in);
 
-        fillingMatrix_X(x);
-        fillingMatrix_Y(y);
+        double[] F = new double[N];
+        double[] x = new double[N];
+        double[][] Jac = new double[N][N + 1];
+        double[] dx = new double[N];
 
-        for (int i = 0; i < NUMBER_OF_MEASUREMENTS; ++i) {
-            System.out.println("x[" + (i + 1) + "] = " + x[i] + "\t" + "y[" + (i + 1) + "] = " + y[i]);
-        }
-        System.out.println();
-
-        double[] PowerX = new double[2 * APPROXIMATING_POLYNOMIAL_DEGREE];
-        for (int i = 0; i < 2 * APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
-            PowerX[i] = 0;
-        }
-
-        for (int i = 1; i <= 2 * APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
-            for (int j = 0; j < NUMBER_OF_MEASUREMENTS; ++j) {
-                PowerX[i - 1] += Math.pow(x[j], i);
-            }
-        }
-
-        for (int i = 0; i < 2 * APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
-            System.out.println("PowerX[" + (i + 1) + "] = " + PowerX[i]);
-        }
-        System.out.println();
-
-        double[][] sumX = new double[APPROXIMATING_POLYNOMIAL_DEGREE + 1][APPROXIMATING_POLYNOMIAL_DEGREE + 2];
-
-        for (int i = 1; i <= APPROXIMATING_POLYNOMIAL_DEGREE + 1; ++i) {
-            for (int j = 1; j <= APPROXIMATING_POLYNOMIAL_DEGREE + 1; ++j) {
-                if ((i + j) >= 3) {
-                    sumX[i - 1][j - 1] = PowerX[i + j - 3];
-                }
-            }
-        }
-        sumX[0][0] = NUMBER_OF_MEASUREMENTS;
-
-        for (int i = 0; i <= APPROXIMATING_POLYNOMIAL_DEGREE; ++i) {
-            for (int j = 0; j < NUMBER_OF_MEASUREMENTS; ++j) {
-                sumX[i][APPROXIMATING_POLYNOMIAL_DEGREE + 1] += (y[j] * Math.pow(x[j], i));
-            }
-        }
-        outputMatrix(sumX, APPROXIMATING_POLYNOMIAL_DEGREE + 1);
-
-        double[][] copyA = new double[APPROXIMATING_POLYNOMIAL_DEGREE + 1][APPROXIMATING_POLYNOMIAL_DEGREE + 2];
-        copyMatrix(sumX, copyA, APPROXIMATING_POLYNOMIAL_DEGREE + 1);
-
-        double[] An;
-        An = gauss(copyA, APPROXIMATING_POLYNOMIAL_DEGREE + 1, APPROXIMATING_POLYNOMIAL_DEGREE + 2);
-
-        for (int i = 0; i < APPROXIMATING_POLYNOMIAL_DEGREE + 1; i++) {
-            System.out.println("a[" + (i + 1) + "] = " + An[i]);
-        }
+        System.out.println("Newton's Method");
 
         System.out.println();
-        System.out.println("Sigma = " + Math.sqrt(standardDeviation(x, y, An, APPROXIMATING_POLYNOMIAL_DEGREE + 1)));
+        System.out.println("2x1^3 - x2^2 - 1 = 0;");
+        System.out.println("x1x2^3 - x2 - 4 = 0;");
         System.out.println();
-        System.out.print("y(x) = ");
-        System.out.print(An[1] + " * x + " + An[0]);
+
+        System.out.print("Enter the number of iterations: ");
+        int iter = in.nextInt();
+        System.out.println();
+
+        System.out.println("Enter the initial approximation:");
+        for (int i = 0; i < N; ++i) {
+            System.out.print("Enter value " + (i + 1) + ": ");
+            x[i] = in.nextDouble();
+        }
+
+        newtonMethod(Jac, F, x, dx, iter);
     }
 
-    private static double[] gauss(double[][] matrix, int n, int m) {
-        double elem = 0;
-        for (int j = 0; j < n; j++) {
+    public static void equations(double[] F, double[] x) {
+        F[0] = 2 * x[0] * x[0] * x[0] - x[1] * x[1] - 1;
+        F[1] = x[0] * x[1] * x[1] * x[1] - x[1] - 4;
+    }
+
+    public static void newtonMethod(double[][] Jac, double[] F, double[] x, double[] dx, int iter) {
+        System.out.println("IterNumber" + "\t\t\t" + "del1" + "\t\t\t\t\t" + "del2");
+        System.out.println("=============================================================");
+
+        boolean IER = false;
+
+        int k = 0;
+        while (true) {
+            equations(F, x);
+            jacobi(Jac, F, x);
+            for (int i = 0; i < N; ++i) {
+                F[i] *= -1;
+            }
+            gaussMethod(Jac, F, dx, x);
             double max = 0;
-            int rowCoord = 0;
-            for (int t = j; t < n; t++) {
-                if (Math.abs(matrix[t][j]) > max) {
-                    max = Math.abs(matrix[t][j]);
-                    rowCoord = t;
+            equations(F, x);
+            for (int i = 0; i < N; ++i) {
+                if (abs(F[i]) > max) {
+                    max = abs(F[i]);
                 }
             }
-            if (max > Math.abs(matrix[j][j])) {
-                double[] ptr = matrix[j];
-                matrix[j] = matrix[rowCoord];
-                matrix[rowCoord] = ptr;
+            double del1 = max;
+            max = 0;
+            for (int i = 0; i < N; ++i) {
+                if (abs(x[i]) < 1 && abs(dx[i]) > max) {
+                    max = abs(dx[i]);
+                }
+                if (abs(x[i]) >= 1 && abs(dx[i] / x[i]) > max) {
+                    max = abs(dx[i] / x[i]);
+                }
             }
-            elem = matrix[j][j];
-            for (int c = j; c < m; c++) {
-                matrix[j][c] /= elem;
-            }
-
-            for (int i2 = j + 1; i2 < n; i2++) {
-                elem = matrix[i2][j];
-                for (int k = j; k < m; k++)
-                    matrix[i2][k] -= elem * matrix[j][k];
+            double del2 = max;
+            System.out.println("\t" + (k + 1) + "\t\t" + del1 + "\t\t" + del2);
+            k++;
+            if (del1 <= EPS2 && del2 <= EPS2 || k >= iter) {
+                if (k >= iter) {
+                    IER = true;
+                }
+                break;
             }
         }
 
-        double[] X = new double[m];
-        X[n - 1] = matrix[n - 1][n];
-        for (int i = n - 2; i >= 0; i--) {
-            X[i] = matrix[i][n];
-            for (int j = i + 1; j < n; j++)
-                X[i] -= matrix[i][j] * X[j];
+        System.out.println("=============================================================");
+        System.out.println("X1 = " + x[0]);
+        System.out.println("X2 = " + x[1]);
+
+        if (IER) {
+//            System.out.println("IER = 2");
         }
-        System.out.println();
-
-        return X;
     }
 
-    private static void fillingMatrix_X(double[] x) {
-        x[0] = 19.1;
-        x[1] = 25.0;
-        x[2] = 30.1;
-        x[3] = 36.0;
-        x[4] = 40.0;
-        x[5] = 45.1;
-        x[6] = 50.0;
-    }
+    public static void jacobi(double[][] Jac, double[] F, double[] x) {
+        double f1 = 0;
+        double f2 = 0;
 
-    private static void fillingMatrix_Y(double[] y) {
-        y[0] = 76.30;
-        y[1] = 77.80;
-        y[2] = 79.75;
-        y[3] = 80.80;
-        y[4] = 82.35;
-        y[5] = 83.90;
-        y[6] = 85.0;
-
-    }
-
-    private static void outputMatrix(double[][] A, int n) {
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < (n + 1); j++) {
-                System.out.printf("%s\t\t", A[i][j]);
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                x[j] += EPS1;
+                equations(F, x);
+                f1 = F[i];
+                x[j] -= EPS1;
+                equations(F, x);
+                f2 = F[i];
+                Jac[i][j] = (f1 - f2) / EPS1;
+                Jac[i][N] = -F[i];
             }
-            System.out.println();
-        }
-        System.out.println();
-    }
-
-    private static void copyMatrix(double[][] A, double[][] copyA, int n) {
-        for (int i = 0; i < n; i++) {
-            if (n + 1 >= 0) System.arraycopy(A[i], 0, copyA[i], 0, n + 1);
         }
     }
 
-    private static double standardDeviation(double[] dataX, double[] dataY, double[] An, double n) {
-        double S = 0, temp;
-        for (int i = 0; i < NUMBER_OF_MEASUREMENTS; i++) {
-            temp = dataY[i];
-            for (int j = 0; j < n; j++) {
-                temp -= An[j] * Math.pow(dataX[i], j);
+    public static void gaussMethod(double[][] Jac, double[] F, double[] dx, double[] x) {
+        for (int i = 0; i < N; i++) {
+            double max = abs(Jac[i][i]);
+            int my = i;
+
+            for (int t = i; t < N; ++t) {
+                if (abs(Jac[t][i]) > max) {
+                    max = abs(Jac[t][i]);
+                    my = t;
+                }
             }
-            S += temp * temp;
+
+            if (my != i) {
+                double[] per = Jac[i];
+                Jac[i] = Jac[my];
+                Jac[my] = per;
+            }
+
+            double amain = Jac[i][i];
+            for (int z = 0; z < N + 1; ++z) {
+                Jac[i][z] = Jac[i][z] / amain;
+            }
+
+            for (int j = i + 1; j < N; ++j) {
+                double b = Jac[j][i];
+                for (int z = i; z < N + 1; ++z) {
+                    Jac[j][z] = Jac[j][z] - Jac[i][z] * b;
+                }
+            }
         }
-        S /= (NUMBER_OF_MEASUREMENTS - APPROXIMATING_POLYNOMIAL_DEGREE - 1);
 
-        return S;
+        for (int i = N - 1; i > 0; --i) {
+            for (int j = i - 1; j >= 0; --j) {
+                Jac[j][N] = Jac[j][N] - Jac[j][i] * Jac[i][N];
+            }
+        }
+
+        for (int i = 0; i < N; ++i) {
+            dx[i] = Jac[i][N];
+        }
+
+        for (int i = 0; i < N; i++) {
+            x[i] += Jac[i][N];
+        }
     }
-
 }
